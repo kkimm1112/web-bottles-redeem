@@ -54,7 +54,7 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
     const requestCamera = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment", width: 1280, height: 720 },
+          video: { facingMode: "environment", width: 480, height: 320 },
         });
         stream.getTracks().forEach((track) => track.stop());
         initializeScanner();
