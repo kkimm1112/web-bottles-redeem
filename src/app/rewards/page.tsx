@@ -72,6 +72,29 @@ export default function RewardsPage() {
   }, []);
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+
+      // เพิ่ม CSS animation สำหรับ modal
+      const style = document.createElement('style');
+      style.textContent = `
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes scaleIn {
+        from { transform: scale(0.9); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+      }
+      .animate-fadeIn {
+        animation: fadeIn 0.3s ease-out forwards;
+      }
+      .animate-scaleIn {
+        animation: scaleIn 0.3s ease-out forwards;
+      }
+    `;
+      document.head.appendChild(style);
+    }
+
     fetchRewards();
     if (session?.user?.id) {
       fetchUserPoints();
@@ -375,23 +398,3 @@ export default function RewardsPage() {
     </div>
   );
 }
-
-// เพิ่ม CSS animation สำหรับ modal
-const style = document.createElement('style');
-style.textContent = `
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-  @keyframes scaleIn {
-    from { transform: scale(0.9); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-  }
-  .animate-fadeIn {
-    animation: fadeIn 0.3s ease-out forwards;
-  }
-  .animate-scaleIn {
-    animation: scaleIn 0.3s ease-out forwards;
-  }
-`;
-document.head.appendChild(style);
