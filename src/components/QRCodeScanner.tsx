@@ -1,7 +1,7 @@
 // src/components/QRCodeScanner.tsx
 
-import { useEffect, useState, useRef, useCallback } from "react";
-import { Html5QrcodeScanner } from "html5-qrcode";
+import { useEffect, useState, useRef } from "react";
+import { Html5QrcodeScanner, Html5Qrcode, CameraDevice } from "html5-qrcode";
 import axios from "axios";
 import { useSession } from "next-auth/react";
 
@@ -22,12 +22,14 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [bottleDetails, setBottleDetails] = useState<BottleDetails>({ big: 0, small: 0, points: 0 });
-  const [userId, setUserId] = useState<string | undefined>(undefined); // เก็บ userId แยก
+  const [userId, setUserId] = useState<string | undefined>(undefined);
+  const [cameraId, setCameraId] = useState<string | null>(null);
+  const [cameras, setCameras] = useState<CameraDevice[]>([]);
 
   console.log("session.user.id =", session?.user?.id);
 
   // เพิ่ม state เพื่อป้องกันการสแกนซ้ำ
-  const [scannerInitialized] = useState(false);
+  const [scannerInitialized, setScannerInitialized] = useState(false);
 
   // ติดตามการเปลี่ยนแปลงของ session และอัปเดต userId
   useEffect(() => {
@@ -42,59 +44,102 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
   }, [session, status]);
 
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  const html5QrcodeRef = useRef<Html5Qrcode | null>(null);
 
-  const qrboxFunction = (viewfinderWidth: number, viewfinderHeight: number) => {
-    const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-    const size =  Math.max(Math.floor(minEdge * 0.6), 200); // กำหนดขนาด QR box เป็น 60% ของขนาดที่เล็กที่สุด หรืออย่างน้อย 300px
-    return { width: size, height: size };
-  };
-
-
+  // ค้นหากล้องที่มีอยู่ในอุปกรณ์
   useEffect(() => {
-    const requestCamera = async () => {
+    const getCameras = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment", width: 480, height: 320 },
-        });
-        stream.getTracks().forEach((track) => track.stop());
-        initializeScanner();
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          alert("ไม่สามารถใช้กล้องได้: " + err.message);
-        } else {
-          alert("ไม่สามารถใช้กล้องได้: Unknown error");
+        const devices = await Html5Qrcode.getCameras();
+        if (devices && devices.length) {
+          setCameras(devices);
+          // เลือกกล้องหลังโดยอัตโนมัติ (โดยทั่วไปกล้องหลังมักเป็นกล้องลำดับที่ 2 หรือสุดท้าย)
+          const backCamera = devices.find(device => 
+            device.id.includes('back') || 
+            device.label.toLowerCase().includes('back')
+          );
+          setCameraId(backCamera ? backCamera.id : devices[devices.length - 1].id);
+          console.log("กล้องที่พบ:", devices);
+          console.log("เลือกกล้อง:", backCamera ? backCamera.id : devices[devices.length - 1].id);
         }
+      } catch (err) {
+        console.error("ไม่สามารถค้นหากล้องได้:", err);
       }
     };
-  
-    if (status === "authenticated" && !scannerRef.current) {
-      requestCamera();
-    }
-  }, [status]);
-  
-  
 
-  const initializeScanner = useCallback(() => {
-    if (scannerRef.current) return;
-    const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: qrboxFunction }, false);
-    scannerRef.current = scanner;
-  
-    scanner.render(handleScan, (error) => {
-      console.warn("Scan error:", error);
-    });
+    getCameras();
   }, []);
 
   useEffect(() => {
-    if (status !== "loading" && !scannerInitialized && !scanResult) {
+    if (status !== "loading" && !scannerInitialized && !scanResult && cameraId) {
       initializeScanner();
     }
     return () => {
+      if (html5QrcodeRef.current) {
+        html5QrcodeRef.current.stop().catch(() => {});
+      }
       if (scannerRef.current) {
         scannerRef.current.clear().catch(() => {});
       }
     };
-  }, [status, scannerInitialized, scanResult, initializeScanner]); // ✅ แก้ตรงนี้
-  
+  }, [status, scannerInitialized, scanResult, cameraId]);
+
+  const initializeScanner = () => {
+    if (scannerRef.current) return;
+
+    // คำนวณขนาด qrbox ที่เหมาะสมตามขนาดหน้าจอ
+    const getQrBoxSize = () => {
+      const minDimension = Math.min(window.innerWidth, window.innerHeight);
+      // ปรับขนาด QR box ให้เหมาะสม (ประมาณ 70% ของด้านที่เล็กที่สุด)
+      return {
+        width: Math.floor(minDimension * 0.7),
+        height: Math.floor(minDimension * 0.7)
+      };
+    };
+
+    const qrboxSize = getQrBoxSize();
+
+    const config = {
+      fps: 10, 
+      qrbox: qrboxSize,
+      aspectRatio: 1.0,
+      // Removed formatsToSupport as Html5Qrcode.FORMATS does not exist
+      rememberLastUsedCamera: true,
+      // กำหนดให้มีการสลับกล้องได้
+      showTorchButtonIfSupported: true,
+      showZoomSliderIfSupported: true
+    };
+
+    // ใช้ Html5Qrcode แทน Html5QrcodeScanner เพื่อควบคุมการแสดงผลมากขึ้น
+    if (cameraId) {
+      const html5Qrcode = new Html5Qrcode("reader");
+      html5QrcodeRef.current = html5Qrcode;
+
+      html5Qrcode.start(
+        cameraId,
+        config,
+        handleScan,
+        (error) => {
+          console.warn("Scan error:", error);
+        }
+      ).catch(err => {
+        console.error("กล้องเริ่มทำงานไม่สำเร็จ:", err);
+        setMessage("❌ ไม่สามารถเข้าถึงกล้องได้ กรุณาให้สิทธิ์การใช้งานกล้อง");
+      });
+
+      setScannerInitialized(true);
+    } else {
+      // ถ้าไม่มี cameraId ให้ใช้ scanner แบบเดิม
+      const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: Math.min(250, window.innerWidth - 50) }, false);
+      scannerRef.current = scanner;
+
+      scanner.render(handleScan, (error) => {
+        console.warn("Scan error:", error);
+      });
+
+      setScannerInitialized(true);
+    }
+  };
 
   const calculatePoints = (big: number, small: number) => big * 200 + small * 100;
 
@@ -168,7 +213,14 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
       }
 
       setScanResult(decodedText);
-      scannerRef.current?.clear().catch(() => {});
+      
+      // หยุดกล้อง
+      if (html5QrcodeRef.current) {
+        html5QrcodeRef.current.stop().catch(() => {});
+      }
+      if (scannerRef.current) {
+        scannerRef.current.clear().catch(() => {});
+      }
 
     } catch (error) {
       console.error("Parsing error:", error);
@@ -207,22 +259,58 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
     setScanResult(null);
     setMessage("");
     setBottleDetails({ big: 0, small: 0, points: 0 });
-    scannerRef.current = null; // reset scannerRef
-    initializeScanner(); // สั่ง initialize ใหม่
+    setScannerInitialized(false);
+    // ล้าง reference ของ scanner
+    if (html5QrcodeRef.current) {
+      html5QrcodeRef.current.stop().catch(() => {});
+      html5QrcodeRef.current = null;
+    }
+    if (scannerRef.current) {
+      scannerRef.current.clear().catch(() => {});
+      scannerRef.current = null;
+    }
+    // เริ่ม scanner ใหม่
+    setTimeout(() => {
+      initializeScanner();
+    }, 500);
+  };
+
+  const handleCameraChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newCameraId = e.target.value;
+    setCameraId(newCameraId);
+    
+    // หยุดกล้องปัจจุบัน
+    if (html5QrcodeRef.current) {
+      html5QrcodeRef.current.stop().catch(() => {});
+      html5QrcodeRef.current = null;
+    }
+    
+    setScannerInitialized(false);
+    // รีเซ็ตและเริ่มกล้องใหม่
+    setTimeout(() => {
+      initializeScanner();
+    }, 500);
   };
 
   return (
     <div className="qr-scanner-container">
-      <div
-        id="reader"
-        style={{
-          width: "100%",
-          maxWidth: "400px", // ✅ กำหนดขนาดสูงสุด (เช่น 400px)
-          height: "auto",     // ✅ ปล่อยความสูงตามอัตราส่วน
-          margin: "0 auto",   // ✅ จัดให้อยู่ตรงกลาง
-        }}
-      ></div>
-
+      {!scanResult && (
+        <div>
+          <div id="reader" className="camera-container"></div>
+          
+          {cameras.length > 1 && (
+            <div className="camera-selector">
+              <select value={cameraId || ''} onChange={handleCameraChange}>
+                {cameras.map((camera) => (
+                  <option key={camera.id} value={camera.id}>
+                    {camera.label || `กล้อง ${camera.id}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+      )}
 
       {loading && (
         <div className="loading-overlay">
@@ -272,17 +360,41 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
       <style jsx>{`
         .qr-scanner-container {
           color: #000;
-          max-width: 500px;
+          max-width: 100%;
           margin: 0 auto;
-          padding: 16px;
+          padding: 8px;
           font-family: sans-serif;
         }
         #reader {
           width: 100%;
-          min-height: 300px;
+          min-height: 350px;
           border: 1px solid #ddd;
           border-radius: 8px;
           overflow: hidden;
+          position: relative;
+        }
+        .camera-container {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .camera-container video {
+          width: 100% !important;
+          height: 100% !important;
+          object-fit: cover !important;
+        }
+        .camera-selector {
+          margin-top: 12px;
+          width: 100%;
+        }
+        .camera-selector select {
+          width: 100%;
+          padding: 8px;
+          border-radius: 4px;
+          border: 1px solid #ddd;
+          background-color: #f8f9fa;
         }
         .loading-overlay {
           position: fixed;
@@ -379,8 +491,6 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
           background: #2563eb;
         }
       `}</style>
-
-      {/* เอา style เดิมที่คุณมีมาแปะตรงนี้ได้เลย */}
     </div>
   );
 }
