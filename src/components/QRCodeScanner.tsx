@@ -117,9 +117,12 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
         try {
           const response = await addPointsToUser(currentUserId, points, PETbig, PETsmall);
           setMessage(`🎉 เพิ่มคะแนนสำเร็จ: ${points} คะแนน - ${response.message}`);
-        } catch (err: string | any) {
-          console.error("Error adding points:", err);
-          setMessage(err.message || "เกิดข้อผิดพลาดในการเพิ่มคะแนน");
+        } catch (err: unknown) {
+          if (err instanceof Error) {
+            setMessage(err.message);
+          } else {
+            setMessage("เกิดข้อผิดพลาดในการเพิ่มคะแนน");
+          }
         } finally {
           setLoading(false);
         }

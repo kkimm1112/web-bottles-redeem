@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import Image from 'next/image';
 
@@ -44,7 +44,7 @@ export default function RewardsPage() {
   const [animatePoints, setAnimatePoints] = useState(false);
 
 
-  const fetchRewards = async () => {
+  const fetchRewards = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch("/api/routers/rewards");
@@ -56,9 +56,9 @@ export default function RewardsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchUserPoints = async () => {
+  const fetchUserPoints = useCallback(async () => {
     if (!session?.user?.id) return;
     
     try {
@@ -69,7 +69,7 @@ export default function RewardsPage() {
     } catch (error) {
       console.error("Error fetching user points:", error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchRewards();
