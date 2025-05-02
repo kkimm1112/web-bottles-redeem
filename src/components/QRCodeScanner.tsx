@@ -241,15 +241,11 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
       )}
       <style jsx>{`
         .qr-scanner-container {
-          // color: #000;
-          // max-width: 500px;
-          // margin: 0 auto;
-          // padding: 16px;
-          // font-family: sans-serif;
-          width: 100%;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
+          color: #000;
+          max-width: 500px;
+          margin: 0 auto;
+          padding: 16px;
+          font-family: sans-serif;
         }
         #reader {
           width: 100%;
