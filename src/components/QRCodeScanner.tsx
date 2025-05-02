@@ -43,9 +43,16 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
 
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
 
+  const qrboxFunction = (viewfinderWidth: number, viewfinderHeight: number) => {
+    const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+    const size = Math.floor(minEdge * 0.7);
+    return { width: size, height: size };
+  };
+  
+
   const initializeScanner = useCallback(() => {
     if (scannerRef.current) return;
-    const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 }, false);
+    const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: qrboxFunction }, false);
     scannerRef.current = scanner;
   
     scanner.render(handleScan, (error) => {
@@ -182,7 +189,10 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
 
   return (
     <div className="qr-scanner-container">
-      {!scanResult && <div id="reader"></div>}
+      <div
+        id="reader"
+        className="w-full max-w-xs mx-auto"
+      ></div>
 
       {loading && (
         <div className="loading-overlay">
@@ -231,11 +241,15 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
       )}
       <style jsx>{`
         .qr-scanner-container {
-          color: #000;
-          max-width: 500px;
-          margin: 0 auto;
-          padding: 16px;
-          font-family: sans-serif;
+          // color: #000;
+          // max-width: 500px;
+          // margin: 0 auto;
+          // padding: 16px;
+          // font-family: sans-serif;
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
         }
         #reader {
           width: 100%;
