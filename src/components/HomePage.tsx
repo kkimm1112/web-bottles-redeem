@@ -26,6 +26,49 @@ export default function HomePage() {
   const [activeSection, setActiveSection] = useState("");
 
   useEffect(() => {
+
+    // 👇 ตรวจว่าอยู่ใน client ก่อนใช้ document
+    if (typeof window !== "undefined") {
+      const style = document.createElement('style');
+      style.textContent = `
+      @keyframes float {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+        100% { transform: translateY(0px); }
+      }
+
+      @keyframes float-delay {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-15px); }
+        100% { transform: translateY(0px); }
+      }
+
+      .animate-float {
+        animation: float 5s ease-in-out infinite;
+      }
+
+      .animate-float-delay {
+        animation: float-delay 6s ease-in-out infinite;
+        animation-delay: 2s;
+      }
+
+      .line-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      .line-clamp-3 {
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+    `;
+      document.head.appendChild(style);
+    }
+
     const fetchData = async () => {
       try {
         const [statsRes, recommendedRes, newsRes, newItemsRes] = await Promise.all([
