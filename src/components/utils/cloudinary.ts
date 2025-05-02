@@ -74,9 +74,6 @@ export const getPublicIdFromUrl = (url: string) => {
     
     // URL รูปแบบ: https://res.cloudinary.com/your-cloud-name/image/upload/v1234567890/folder/filename.jpg
     const parts = url.split('/');
-    const filenameWithExtension = parts[parts.length - 1];
-    // const filename = filenameWithExtension.split('.')[0];
-    
     // Public ID รวม path ภายใน Cloudinary เช่น "folder/filename"
     const uploadIndex = parts.indexOf('upload');
     if (uploadIndex === -1) return null;
