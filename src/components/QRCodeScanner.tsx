@@ -4,6 +4,8 @@ import { useEffect, useState, useRef } from "react";
 import { Html5QrcodeScanner, Html5Qrcode, CameraDevice } from "html5-qrcode";
 import axios from "axios";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+
 
 interface BottleDetails {
   big: number;
@@ -25,6 +27,8 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
   const [userId, setUserId] = useState<string | undefined>(undefined);
   const [cameraId, setCameraId] = useState<string | null>(null);
   const [cameras, setCameras] = useState<CameraDevice[]>([]);
+  const router = useRouter();
+
 
   console.log("session.user.id =", session?.user?.id);
 
@@ -54,8 +58,8 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
         if (devices && devices.length) {
           setCameras(devices);
           // เลือกกล้องหลังโดยอัตโนมัติ (โดยทั่วไปกล้องหลังมักเป็นกล้องลำดับที่ 2 หรือสุดท้าย)
-          const backCamera = devices.find(device => 
-            device.id.includes('back') || 
+          const backCamera = devices.find(device =>
+            device.id.includes('back') ||
             device.label.toLowerCase().includes('back')
           );
           setCameraId(backCamera ? backCamera.id : devices[devices.length - 1].id);
@@ -76,10 +80,10 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
     }
     return () => {
       if (html5QrcodeRef.current) {
-        html5QrcodeRef.current.stop().catch(() => {});
+        html5QrcodeRef.current.stop().catch(() => { });
       }
       if (scannerRef.current) {
-        scannerRef.current.clear().catch(() => {});
+        scannerRef.current.clear().catch(() => { });
       }
     };
   }, [status, scannerInitialized, scanResult, cameraId]);
@@ -100,7 +104,7 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
     const qrboxSize = getQrBoxSize();
 
     const config = {
-      fps: 10, 
+      fps: 10,
       qrbox: qrboxSize,
       aspectRatio: 1.0,
       // Removed formatsToSupport as Html5Qrcode.FORMATS does not exist
@@ -144,7 +148,7 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
   const calculatePoints = (big: number, small: number) => big * 200 + small * 100;
 
   const handleScan = async (decodedText: string) => {
-    
+
     if (!decodedText || decodedText.trim() === "") {
       console.warn("Empty decodedText, ignoring...");
       return;
@@ -213,13 +217,13 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
       }
 
       setScanResult(decodedText);
-      
+
       // หยุดกล้อง
       if (html5QrcodeRef.current) {
-        html5QrcodeRef.current.stop().catch(() => {});
+        html5QrcodeRef.current.stop().catch(() => { });
       }
       if (scannerRef.current) {
-        scannerRef.current.clear().catch(() => {});
+        scannerRef.current.clear().catch(() => { });
       }
 
     } catch (error) {
@@ -232,15 +236,15 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
     }
   };
 
-  
+
 
   const validateToken = async (token: string, PETbig: number, PETsmall: number, points: number): Promise<boolean> => {
     try {
-      const res = await axios.post("/api/routers/validate-token", 
-        { 
-          token, 
-          PETbig, 
-          PETsmall, 
+      const res = await axios.post("/api/routers/validate-token",
+        {
+          token,
+          PETbig,
+          PETsmall,
           points
         });
       return res.data.valid;
@@ -253,7 +257,13 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
     const res = await axios.post("/api/routers/add-points", { userId: userId, points: Number(points), PETbig, PETsmall });
     return res.data;
   };
+
+  const handleContinue = () => {
+    console.log("ดำเนินการต่อด้วย:", scanResult);
+    router.push("/"); // ✅ กลับไปหน้าแรก
+  };
   
+
 
   const handleRescan = () => {
     setScanResult(null);
@@ -262,11 +272,11 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
     setScannerInitialized(false);
     // ล้าง reference ของ scanner
     if (html5QrcodeRef.current) {
-      html5QrcodeRef.current.stop().catch(() => {});
+      html5QrcodeRef.current.stop().catch(() => { });
       html5QrcodeRef.current = null;
     }
     if (scannerRef.current) {
-      scannerRef.current.clear().catch(() => {});
+      scannerRef.current.clear().catch(() => { });
       scannerRef.current = null;
     }
     // เริ่ม scanner ใหม่
@@ -278,13 +288,13 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
   const handleCameraChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newCameraId = e.target.value;
     setCameraId(newCameraId);
-    
+
     // หยุดกล้องปัจจุบัน
     if (html5QrcodeRef.current) {
-      html5QrcodeRef.current.stop().catch(() => {});
+      html5QrcodeRef.current.stop().catch(() => { });
       html5QrcodeRef.current = null;
     }
-    
+
     setScannerInitialized(false);
     // รีเซ็ตและเริ่มกล้องใหม่
     setTimeout(() => {
@@ -297,7 +307,7 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
       {!scanResult && (
         <div>
           <div id="reader" className="camera-container"></div>
-          
+
           {cameras.length > 1 && (
             <div className="camera-selector">
               <select value={cameraId || ''} onChange={handleCameraChange}>
@@ -354,6 +364,9 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
 
           <button className="rescan-button" onClick={handleRescan}>
             สแกนใหม่
+          </button>
+          <button className="continue-button" onClick={handleContinue}>
+            ดำเนินการต่อ
           </button>
         </div>
       )}
@@ -475,6 +488,17 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
           background: #f1f5f9;
           padding: 8px;
           border-radius: 4px;
+        }
+        .continue-button {
+          padding: 0.5rem 1.2rem;
+          border-radius: 6px;
+          font-weight: bold;
+          cursor: pointer;
+        }
+
+        .continue-button {
+          background-color: #4caf50;
+          color: white;
         }
         .rescan-button {
           background: #3b82f6;
