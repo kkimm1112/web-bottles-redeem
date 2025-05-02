@@ -58,8 +58,12 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
         });
         stream.getTracks().forEach((track) => track.stop());
         initializeScanner();
-      } catch (err: any) {
-        alert("ไม่สามารถใช้กล้องได้: " + err.message);
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          alert("ไม่สามารถใช้กล้องได้: " + err.message);
+        } else {
+          alert("ไม่สามารถใช้กล้องได้: Unknown error");
+        }
       }
     };
   
