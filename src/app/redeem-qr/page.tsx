@@ -18,7 +18,7 @@ export default function RedeemQRPage() {
     }
   }, [sessionStatus, router]);
 
-  const handleScan = async (_code: string) => {
+  const handleScan = async () => {
 
     setMessage("กำลังแลกคะแนน...");
     setStatus("loading");

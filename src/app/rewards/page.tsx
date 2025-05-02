@@ -43,12 +43,6 @@ export default function RewardsPage() {
   const [loading, setLoading] = useState(true);
   const [animatePoints, setAnimatePoints] = useState(false);
 
-  useEffect(() => {
-    fetchRewards();
-    if (session?.user?.id) {
-      fetchUserPoints();
-    }
-  }, [session]);
 
   const fetchRewards = async () => {
     try {
@@ -76,6 +70,13 @@ export default function RewardsPage() {
       console.error("Error fetching user points:", error);
     }
   };
+
+  useEffect(() => {
+    fetchRewards();
+    if (session?.user?.id) {
+      fetchUserPoints();
+    }
+  }, [session, fetchRewards, fetchUserPoints]);
 
   const refreshUserData = async () => {
     await fetchUserPoints();
