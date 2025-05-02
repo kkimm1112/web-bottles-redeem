@@ -48,6 +48,26 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
     const size =  Math.max(Math.floor(minEdge * 0.6), 300); // กำหนดขนาด QR box เป็น 60% ของขนาดที่เล็กที่สุด หรืออย่างน้อย 300px
     return { width: size, height: size };
   };
+
+
+  useEffect(() => {
+    const requestCamera = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" },
+        });
+        stream.getTracks().forEach((track) => track.stop());
+        initializeScanner();
+      } catch (err: any) {
+        alert("ไม่สามารถใช้กล้องได้: " + err.message);
+      }
+    };
+  
+    if (status === "authenticated" && !scannerRef.current) {
+      requestCamera();
+    }
+  }, [status]);
+  
   
 
   const initializeScanner = useCallback(() => {
