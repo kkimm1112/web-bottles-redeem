@@ -1,6 +1,6 @@
 // src/components/QRCodeScanner.tsx
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import axios from "axios";
 import { useSession } from "next-auth/react";
@@ -43,8 +43,18 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
 
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
 
+  const initializeScanner = useCallback(() => {
+    if (scannerRef.current) return;
+    const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 }, false);
+    scannerRef.current = scanner;
+  
+    scanner.render(handleScan, (error) => {
+      console.warn("Scan error:", error);
+    });
+  }, []);
+
   useEffect(() => {
-    if (status !== "loading" && !scannerInitialized && !scanResult) { // รอให้ session โหลดเสร็จก่อน
+    if (status !== "loading" && !scannerInitialized && !scanResult) {
       initializeScanner();
     }
     return () => {
@@ -52,18 +62,8 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
         scannerRef.current.clear().catch(() => {});
       }
     };
-  }, [status, scannerInitialized, scanResult]); // เพิ่ม dependency เป็น status
-
-  const initializeScanner = () => {
-    if (scannerRef.current) return; // ป้องกัน initialize ซ้ำ
-    const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 }, false);
-    scannerRef.current = scanner;
-
-    scanner.render(handleScan, (error) => {
-      console.warn("Scan error:", error);
-    });
-  };
-
+  }, [status, scannerInitialized, scanResult, initializeScanner]); // ✅ แก้ตรงนี้
+  
 
   const calculatePoints = (big: number, small: number) => big * 200 + small * 100;
 

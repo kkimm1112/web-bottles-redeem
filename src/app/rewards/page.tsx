@@ -101,7 +101,7 @@ export default function RewardsPage() {
     if (session?.user?.id) {
       fetchUserPoints();
     }
-  }, [session, fetchRewards, fetchUserPoints]);
+  }, [session?.user.id, fetchRewards, fetchUserPoints]);
 
   const refreshUserData = async () => {
     await fetchUserPoints();
