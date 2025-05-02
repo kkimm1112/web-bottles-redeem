@@ -45,7 +45,7 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
 
   const qrboxFunction = (viewfinderWidth: number, viewfinderHeight: number) => {
     const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-    const size =  Math.max(Math.floor(minEdge * 0.8), 500); // กำหนดขนาด QR box เป็น 60% ของขนาดที่เล็กที่สุด หรืออย่างน้อย 300px
+    const size =  Math.max(Math.floor(minEdge * 0.7), 300); // กำหนดขนาด QR box เป็น 60% ของขนาดที่เล็กที่สุด หรืออย่างน้อย 300px
     return { width: size, height: size };
   };
 
