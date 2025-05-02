@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import Image from 'next/image';
 
 interface Reward {
   id: string;
@@ -408,7 +409,7 @@ export default function AdminRewardTable() {
                 onClick={() => fileInputRef.current?.click()}
               >
                 {newRewardImagePreview ? (
-                  <img
+                  <Image
                     src={newRewardImagePreview}
                     alt="Preview"
                     className="w-full h-full object-cover rounded-lg"
@@ -534,13 +535,13 @@ export default function AdminRewardTable() {
                 onClick={() => editFileInputRef.current?.click()}
               >
                 {editRewardImagePreview ? (
-                  <img
+                  <Image
                     src={editRewardImagePreview}
                     alt="Preview"
                     className="w-full h-full object-cover rounded-lg"
                   />
                 ) : editingReward.image ? (
-                  <img
+                  <Image
                     src={optimizeCloudinaryUrl(editingReward.image, 320)}
                     alt={editingReward.name}
                     className="w-full h-full object-cover rounded-lg"
@@ -699,7 +700,8 @@ export default function AdminRewardTable() {
                     <tr key={reward.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="w-16 h-16 rounded-lg bg-gray-100 overflow-hidden">
-                          <img
+                          <Image
+                            width={160}
                             src={previewImages[reward.id] || 
                                 (reward.image ? optimizeCloudinaryUrl(reward.image, 160) : "/placeholder.png")}
                             alt={reward.name}

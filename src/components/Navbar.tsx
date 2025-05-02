@@ -5,6 +5,7 @@ import { useSession, signIn, signOut } from "next-auth/react";
 import Link from "next/link";
 import { Menu } from "@headlessui/react";
 import { useState, useEffect } from "react";
+import Image from 'next/image';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -90,7 +91,9 @@ export default function Navbar() {
               ) : status === "authenticated" ? (
                 <Menu as="div" className="relative">
                   <Menu.Button className="flex items-center space-x-3 bg-white bg-opacity-10 backdrop-blur-sm hover:bg-opacity-20 transition-all duration-200 px-4 py-2 rounded-full cursor-pointer border border-white border-opacity-20">
-                    <img
+                    <Image
+                      width={32}
+                      height={32}
                       src={session.user.image ?? "/default-avatar.png"}
                       alt="Profile"
                       className="w-8 h-8 rounded-full object-cover ring-2 ring-white"
@@ -176,7 +179,9 @@ export default function Navbar() {
               {status === "authenticated" ? (
                 <Menu as="div" className="relative">
                   <Menu.Button className="flex items-center space-x-2 bg-white bg-opacity-10 backdrop-blur-sm hover:bg-opacity-20 px-3 py-1 rounded-full cursor-pointer border border-white border-opacity-20">
-                    <img
+                    <Image
+                      width={32}
+                      height={32}
                       src={session.user.image ?? "/default-avatar.png"}
                       alt="User Icon"
                       className="w-9 h-9 rounded-full object-cover ring-2 ring-white"

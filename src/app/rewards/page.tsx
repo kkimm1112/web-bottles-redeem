@@ -1,7 +1,10 @@
+// src/app/rewards/page.tsx
+
 "use client";
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import Image from 'next/image';
 
 interface Reward {
   id: number;
@@ -218,7 +221,9 @@ export default function RewardsPage() {
 
                       <div className="relative h-48 overflow-hidden">
                         {reward.image ? (
-                          <img
+                          <Image
+                            width={480}
+                            height={360}
                             src={optimizeCloudinaryUrl(reward.image, { width: 480, height: 360, })}
                             alt={reward.name}
                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
@@ -304,7 +309,9 @@ export default function RewardsPage() {
           >
             <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-white w-20 h-20 rounded-full flex items-center justify-center shadow-lg border-4 border-white">
               {selectedReward.image ? (
-                <img 
+                <Image
+                  width={100}     
+                  height={100} 
                   src={optimizeCloudinaryUrl(selectedReward.image, { width: 100, height: 100 })} 
                   alt={selectedReward.name} 
                   className="w-16 h-16 object-cover rounded-full"

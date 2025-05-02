@@ -1,13 +1,13 @@
 // src: src/app/redeem-qr/page.tsx
 "use client";
 import { useState, useEffect } from "react";
-// import axios from "axios";
+
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import QRCodeScanner from "@/components/QRCodeScanner";
 
 export default function RedeemQRPage() {
-  const { data: session, status: sessionStatus } = useSession();
+  const { status: sessionStatus } = useSession();
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState("idle"); // idle, loading, success, error
   const router = useRouter();
@@ -18,22 +18,10 @@ export default function RedeemQRPage() {
     }
   }, [sessionStatus, router]);
 
-  // const userId = session?.user?.id; // ดึง userId ของคนที่ login ออกมา
-
   const handleScan = async (code: string) => {
-
-
-    // if (sessionStatus !== "authenticated" || !session?.user?.id) {
-    //   console.error("User not authenticated");
-    //   setMessage("กรุณาเข้าสู่ระบบก่อนแลกคะแนน");
-    //   setStatus("error");
-    //   return;
-    // }
 
     setMessage("กำลังแลกคะแนน...");
     setStatus("loading");
-
-    // const userId = session.user.id
 
   }
 

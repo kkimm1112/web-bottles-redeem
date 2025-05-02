@@ -23,17 +23,11 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
   const [message, setMessage] = useState("");
   const [bottleDetails, setBottleDetails] = useState<BottleDetails>({ big: 0, small: 0, points: 0 });
   const [userId, setUserId] = useState<string | undefined>(undefined); // เก็บ userId แยก
-  const [scannerError, setScannerError] = useState(false);
 
   console.log("session.user.id =", session?.user?.id);
 
   // เพิ่ม state เพื่อป้องกันการสแกนซ้ำ
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [scannerInitialized, setScannerInitialized] = useState(false);
-
-  // ใช้ useRef เก็บค่า QR ที่สแกนได้ล่าสุดเพื่อป้องกันการประมวลผลซ้ำ
-  const lastScannedCode = useRef<string | null>(null);
-
+  const [scannerInitialized] = useState(false);
 
   // ติดตามการเปลี่ยนแปลงของ session และอัปเดต userId
   useEffect(() => {
