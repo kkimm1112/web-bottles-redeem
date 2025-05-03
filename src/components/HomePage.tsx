@@ -18,10 +18,10 @@ interface NewsItem {
 }
 
 export default function HomePage() {
-  const [stats, setStats] = useState({ users: 0, redeemed: 0, coinsUsed: 0 });
+  // const [stats, setStats] = useState({ users: 0, redeemed: 0, coinsUsed: 0 });
   const [recommended, setRecommended] = useState<Reward[]>([]);
-  const [news, setNews] = useState<NewsItem[]>([]);
-  const [newItems, setNewItems] = useState<Reward[]>([]);
+  // const [news, setNews] = useState<NewsItem[]>([]);
+  // const [newItems, setNewItems] = useState<Reward[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState("");
 
@@ -78,7 +78,7 @@ export default function HomePage() {
           fetch("/api/rewards/").then(res => res.json())
         ]);
 
-        setStats(statsRes);
+        // setStats(statsRes);
         setRecommended(recommendedRes);
         // setNews(newsRes);
         // setNewItems(newItemsRes);
@@ -411,7 +411,7 @@ export default function HomePage() {
             </div>
           </div>
           
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+          {/* <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
             {newItems.map((item, index) => (
               <Link
                 key={item.id}
@@ -456,7 +456,7 @@ export default function HomePage() {
                 </div>
               </Link>
             ))}
-          </div>
+          </div> */}
         </div>
       </div>
       
