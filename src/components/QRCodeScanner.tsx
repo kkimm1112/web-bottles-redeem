@@ -1,9 +1,12 @@
 // src/components/QRCodeScanner.tsx
 
 import { useEffect, useState, useRef } from "react";
-import { Html5QrcodeScanner, Html5Qrcode, CameraDevice } from "html5-qrcode";
+import dynamic from 'next/dynamic';
 import axios from "axios";
 import { useSession } from "next-auth/react";
+
+// นำเข้า types เท่านั้น เพื่อไม่ให้มีการเรียกใช้ library โดยตรงในฝั่ง server
+import type { Html5QrcodeScanner, Html5Qrcode, CameraDevice } from "html5-qrcode";
 
 interface BottleDetails {
   big: number;
@@ -16,7 +19,8 @@ interface AddPointsResponse {
   [key: string]: unknown;
 }
 
-export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSuccess?: (decodedText: string) => void }) {
+// สร้างคอมโพเนนต์แบบ Dynamic Import เพื่อให้โหลดเฉพาะฝั่ง client
+const QRCodeScannerWithPoints = ({ onScanSuccess }: { onScanSuccess?: (decodedText: string) => void }) => {
   const { data: session, status } = useSession();
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -25,11 +29,17 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
   const [userId, setUserId] = useState<string | undefined>(undefined);
   const [cameraId, setCameraId] = useState<string | null>(null);
   const [cameras, setCameras] = useState<CameraDevice[]>([]);
+  const [isClient, setIsClient] = useState(false);
 
   console.log("session.user.id =", session?.user?.id);
 
   // เพิ่ม state เพื่อป้องกันการสแกนซ้ำ
   const [scannerInitialized, setScannerInitialized] = useState(false);
+
+  // ตรวจสอบว่าโค้ดทำงานในฝั่ง client
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // ติดตามการเปลี่ยนแปลงของ session และอัปเดต userId
   useEffect(() => {
@@ -48,8 +58,14 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
 
   // ค้นหากล้องที่มีอยู่ในอุปกรณ์
   useEffect(() => {
+    // ตรวจสอบว่าอยู่ในฝั่ง client และมีการโหลด html5-qrcode เรียบร้อยแล้ว
+    if (!isClient) return;
+
     const getCameras = async () => {
       try {
+        // Import html5-qrcode แบบ dynamic
+        const { Html5Qrcode } = await import('html5-qrcode');
+        
         const devices = await Html5Qrcode.getCameras();
         if (devices && devices.length) {
           setCameras(devices);
@@ -64,16 +80,19 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
         }
       } catch (err) {
         console.error("ไม่สามารถค้นหากล้องได้:", err);
+        setMessage("❌ ไม่สามารถค้นหากล้องได้ โปรดตรวจสอบการอนุญาตการใช้งานกล้อง");
       }
     };
 
     getCameras();
-  }, []);
+  }, [isClient]);
 
   useEffect(() => {
-    if (status !== "loading" && !scannerInitialized && !scanResult && cameraId) {
-      initializeScanner();
-    }
+    // ตรวจสอบว่าอยู่ในฝั่ง client, session พร้อม และมี cameraId
+    if (!isClient || status === "loading" || scannerInitialized || scanResult || !cameraId) return;
+    
+    initializeScanner();
+    
     return () => {
       if (html5QrcodeRef.current) {
         html5QrcodeRef.current.stop().catch(() => {});
@@ -82,62 +101,68 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
         scannerRef.current.clear().catch(() => {});
       }
     };
-  }, [status, scannerInitialized, scanResult, cameraId]);
+  }, [isClient, status, scannerInitialized, scanResult, cameraId]);
 
-  const initializeScanner = () => {
-    if (scannerRef.current) return;
+  const initializeScanner = async () => {
+    if (scannerRef.current || !isClient) return;
 
-    // คำนวณขนาด qrbox ที่เหมาะสมตามขนาดหน้าจอ
-    const getQrBoxSize = () => {
-      const minDimension = Math.min(window.innerWidth, window.innerHeight);
-      // ปรับขนาด QR box ให้เหมาะสม (ประมาณ 70% ของด้านที่เล็กที่สุด)
-      return {
-        width: Math.floor(minDimension * 0.7),
-        height: Math.floor(minDimension * 0.7)
+    try {
+      // Import html5-qrcode แบบ dynamic
+      const { Html5Qrcode, Html5QrcodeScanner } = await import('html5-qrcode');
+
+      // คำนวณขนาด qrbox ที่เหมาะสมตามขนาดหน้าจอ
+      const getQrBoxSize = () => {
+        const minDimension = Math.min(window.innerWidth, window.innerHeight);
+        // ปรับขนาด QR box ให้เหมาะสม (ประมาณ 70% ของด้านที่เล็กที่สุด)
+        return {
+          width: Math.floor(minDimension * 0.7),
+          height: Math.floor(minDimension * 0.7)
+        };
       };
-    };
 
-    const qrboxSize = getQrBoxSize();
+      const qrboxSize = getQrBoxSize();
 
-    const config = {
-      fps: 10, 
-      qrbox: qrboxSize,
-      aspectRatio: 1.0,
-      // Removed formatsToSupport as Html5Qrcode.FORMATS does not exist
-      rememberLastUsedCamera: true,
-      // กำหนดให้มีการสลับกล้องได้
-      showTorchButtonIfSupported: true,
-      showZoomSliderIfSupported: true
-    };
+      const config = {
+        fps: 10, 
+        qrbox: qrboxSize,
+        aspectRatio: 1.0,
+        rememberLastUsedCamera: true,
+        showTorchButtonIfSupported: true,
+        showZoomSliderIfSupported: true
+      };
 
-    // ใช้ Html5Qrcode แทน Html5QrcodeScanner เพื่อควบคุมการแสดงผลมากขึ้น
-    if (cameraId) {
-      const html5Qrcode = new Html5Qrcode("reader");
-      html5QrcodeRef.current = html5Qrcode;
+      // ใช้ Html5Qrcode แทน Html5QrcodeScanner เพื่อควบคุมการแสดงผลมากขึ้น
+      if (cameraId) {
+        const html5Qrcode = new Html5Qrcode("reader");
+        html5QrcodeRef.current = html5Qrcode;
 
-      html5Qrcode.start(
-        cameraId,
-        config,
-        handleScan,
-        (error) => {
+        html5Qrcode.start(
+          cameraId,
+          config,
+          handleScan,
+          (error) => {
+            console.warn("Scan error:", error);
+          }
+        ).catch(err => {
+          console.error("กล้องเริ่มทำงานไม่สำเร็จ:", err);
+          setMessage("❌ ไม่สามารถเข้าถึงกล้องได้ กรุณาให้สิทธิ์การใช้งานกล้อง");
+        });
+
+        setScannerInitialized(true);
+      } else {
+        // ถ้าไม่มี cameraId ให้ใช้ scanner แบบเดิม
+        const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: Math.min(250, window.innerWidth - 50) }, false);
+        scannerRef.current = scanner;
+
+        scanner.render(handleScan, (error) => {
           console.warn("Scan error:", error);
-        }
-      ).catch(err => {
-        console.error("กล้องเริ่มทำงานไม่สำเร็จ:", err);
-        setMessage("❌ ไม่สามารถเข้าถึงกล้องได้ กรุณาให้สิทธิ์การใช้งานกล้อง");
-      });
+        });
 
-      setScannerInitialized(true);
-    } else {
-      // ถ้าไม่มี cameraId ให้ใช้ scanner แบบเดิม
-      const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: Math.min(250, window.innerWidth - 50) }, false);
-      scannerRef.current = scanner;
-
-      scanner.render(handleScan, (error) => {
-        console.warn("Scan error:", error);
-      });
-
-      setScannerInitialized(true);
+        setScannerInitialized(true);
+      }
+    } catch (error) {
+      console.error("Error initializing scanner:", error);
+      setMessage("❌ เกิดข้อผิดพลาดในการเริ่มต้นสแกนเนอร์");
     }
   };
 
@@ -232,8 +257,6 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
     }
   };
 
-  
-
   const validateToken = async (token: string, PETbig: number, PETsmall: number, points: number): Promise<boolean> => {
     try {
       const res = await axios.post("/api/routers/validate-token", 
@@ -254,7 +277,6 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
     return res.data;
   };
   
-
   const handleRescan = () => {
     setScanResult(null);
     setMessage("");
@@ -291,6 +313,11 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
       initializeScanner();
     }, 500);
   };
+
+  // ถ้ายังไม่ได้อยู่ในฝั่ง client ให้แสดง placeholder หรือ loading
+  if (!isClient) {
+    return <div className="scanner-loading">กำลังโหลดสแกนเนอร์...</div>;
+  }
 
   return (
     <div className="qr-scanner-container">
@@ -490,7 +517,23 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
         .rescan-button:hover {
           background: #2563eb;
         }
+        .scanner-loading {
+          text-align: center;
+          padding: 20px;
+          background: #f8fafc;
+          border-radius: 8px;
+          border: 1px dashed #e2e8f0;
+          margin: 16px 0;
+        }
       `}</style>
     </div>
   );
 }
+
+// Export component แบบ dynamic ที่จะโหลดเฉพาะฝั่ง client
+const DynamicQRCodeScanner = dynamic(
+  () => Promise.resolve(QRCodeScannerWithPoints),
+  { ssr: false }
+);
+
+export default DynamicQRCodeScanner;
