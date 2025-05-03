@@ -10,12 +10,12 @@ interface Reward {
   stock: number;
 }
 
-interface NewsItem {
-  id: number;
-  title: string;
-  content: string;
-  date: string;
-}
+// interface NewsItem {
+//   id: number;
+//   title: string;
+//   content: string;
+//   date: string;
+// }
 
 export default function HomePage() {
   // const [stats, setStats] = useState({ users: 0, redeemed: 0, coinsUsed: 0 });
@@ -71,7 +71,7 @@ export default function HomePage() {
 
     const fetchData = async () => {
       try {
-        const [statsRes, recommendedRes, ] = await Promise.all([
+        const [recommendedRes] = await Promise.all([
           // fetch("/api/routers/stats").then(res => res.json()),
           fetch("/api/rewards/").then(res => res.json()),
           // fetch("/api/routers/news").then(res => res.json()),
