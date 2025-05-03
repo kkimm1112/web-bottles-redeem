@@ -71,11 +71,11 @@ export default function HomePage() {
 
     const fetchData = async () => {
       try {
-        const [statsRes, recommendedRes] = await Promise.all([
-          //fetch("/api/routers/stats").then(res => res.json()),
-          fetch("/api/routers/rewards/").then(res => res.json()),
-          //fetch("/api/routers/news").then(res => res.json()),
-          fetch("/api/routers/rewards/").then(res => res.json())
+        const [statsRes, recommendedRes, ] = await Promise.all([
+          // fetch("/api/routers/stats").then(res => res.json()),
+          fetch("/api/rewards/").then(res => res.json()),
+          // fetch("/api/routers/news").then(res => res.json()),
+          fetch("/api/rewards/").then(res => res.json())
         ]);
 
         setStats(statsRes);
@@ -476,9 +476,7 @@ export default function HomePage() {
             <Link href="/rewards" className="bg-white text-green-600 px-6 py-3 rounded-lg font-bold shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1">
               เริ่มต้นใช้งาน
             </Link>
-            {/* <Link href="/about" className="bg-transparent text-white border border-white px-6 py-3 rounded-lg font-bold hover:bg-white hover:bg-opacity-10 transition-all">
-              เรียนรู้เพิ่มเติม
-            </Link> */}
+            
           </div>
         </div>
       </div>
