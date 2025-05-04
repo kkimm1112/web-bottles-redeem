@@ -289,14 +289,14 @@ export default function HomePage() {
                   </div>
                   
                   <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center text-sm text-gray-600">
+                    {/* <div className="flex items-center text-sm text-gray-600">
                       <svg className="w-4 h-4 mr-1 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
                       </svg>
                       <span>
                         สต๊อก <span className={item.stock < 5 ? "text-red-500 font-medium" : ""}>{item.stock}</span>
                       </span>
-                    </div>
+                    </div> */}
                     
                     <div className="flex items-center text-sm text-gray-600">
                       <div className="flex items-center">
