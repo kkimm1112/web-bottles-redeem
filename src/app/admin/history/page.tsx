@@ -228,7 +228,7 @@ export default function AdminHistoryPage() {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
+    <div className="bg-white rounded-lg flex shadow-md p-6 space-y-6">
             {/* Sidebar */}
             <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white shadow-lg fixed h-full transition-all duration-300 z-10`}>
         <div className="flex justify-between items-center p-4 border-b">
