@@ -339,7 +339,7 @@ export default function AdminRewardTable() {
 
   return (
     
-    <div className="bg-white rounded-lg flex shadow-md p-6 space-y-8">
+    <div className="bg-white rounded-lg shadow-md p-6 space-y-8">
       
       {/* Sidebar */}
       <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white shadow-lg fixed h-full transition-all duration-300 z-10`}>
