@@ -106,7 +106,7 @@ export default function RewardTable() {
   };
 
   const handleAddReward = () => {
-    router.push("/admin/rewards/new");
+    router.push("/admin/rewards");
   };
 
  
