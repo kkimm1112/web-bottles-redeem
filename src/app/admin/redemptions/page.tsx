@@ -73,7 +73,6 @@ export default function AdminRedemptions() {
   const getStatusBadgeColor = (status: string): string => {
     const statusBadgeColors: StatusBadgeColorMap = {
       PENDING: "bg-yellow-100 text-yellow-800",
-      SHIPPED: "bg-blue-100 text-blue-800",
       COMPLETED: "bg-green-100 text-green-800",
     };
 
@@ -87,7 +86,6 @@ export default function AdminRedemptions() {
   const getStatusText = (status: string): string => {
     const statusTextMap: StatusTextMap = {
       PENDING: "กำลังดำเนินการ",
-      SHIPPED: "รอรับสินค้า",
       COMPLETED: "ได้รับสินค้าแล้ว",
     };
 
@@ -162,7 +160,6 @@ export default function AdminRedemptions() {
               >
                 <option value="ALL">สถานะทั้งหมด</option>
                 <option value="PENDING">กำลังดำเนินการ</option>
-                <option value="SHIPPED">รอรับสินค้า</option>
                 <option value="COMPLETED">ได้รับสินค้าแล้ว</option>
               </select>
             </div>
@@ -181,17 +178,6 @@ export default function AdminRedemptions() {
                 </div>
               </div>
               
-              <div className="bg-white border border-blue-200 rounded-lg shadow px-4 py-5 flex items-center">
-                <div className="rounded-full bg-blue-100 p-3 mr-4">
-                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">รอรับสินค้า</p>
-                  <p className="text-xl font-semibold">{redemptions.filter(r => r.status === "SHIPPED").length}</p>
-                </div>
-              </div>
               
               <div className="bg-white border border-green-200 rounded-lg shadow px-4 py-5 flex items-center">
                 <div className="rounded-full bg-green-100 p-3 mr-4">

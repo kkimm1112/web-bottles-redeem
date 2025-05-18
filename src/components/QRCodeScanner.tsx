@@ -16,35 +16,36 @@ interface AddPointsResponse {
   [key: string]: unknown;
 }
 
+interface ScannedToken {
+  token: string;
+  timestamp: number;
+}
+
 export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSuccess?: (decodedText: string) => void }) {
   const { data: session, status } = useSession();
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [bottleDetails, setBottleDetails] = useState<BottleDetails>({ big: 0, small: 0, points: 0 });
-  const [userId, setUserId] = useState<string | undefined>(undefined); // เก็บ userId แยก
+  const [userId, setUserId] = useState<string | undefined>(undefined);
+  const [scanStatus, setScanStatus] = useState<"idle" | "scanning" | "processing" | "completed" | "error">("idle");
 
-  console.log("session.user.id =", session?.user?.id);
+  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  const isProcessingRef = useRef(false); // ป้องกันการสแกนเบิ้ล
+  const lastScanTimeRef = useRef(0); // เก็บเวลาสแกนล่าสุด
+  const scannedTokensRef = useRef<ScannedToken[]>([]); // เก็บประวัติ token ที่เคยสแกน
+  const SCAN_COOLDOWN = 3000; // ระยะเวลาขั้นต่ำระหว่างการสแกน (3 วินาที)
+  const MAX_STORED_TOKENS = 50; // จำนวนสูงสุดของ token ที่จะเก็บไว้ในประวัติ
 
-  // เพิ่ม state เพื่อป้องกันการสแกนซ้ำ
-  const [scannerInitialized] = useState(false);
-
-  // ติดตามการเปลี่ยนแปลงของ session และอัปเดต userId
+  // เก็บ userId จาก session
   useEffect(() => {
     if (status === "authenticated" && session?.user?.id) {
       setUserId(session.user.id);
-      console.log("Session loaded - User ID:", session.user.id);
-    } else if (status === "unauthenticated") {
-      console.log("User not authenticated");
-    } else if (status === "loading") {
-      console.log("Session loading...");
     }
   }, [session, status]);
 
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
-
   useEffect(() => {
-    if (status !== "loading" && !scannerInitialized && !scanResult) { // รอให้ session โหลดเสร็จก่อน
+    if (status !== "loading" && !scannerRef.current && !scanResult) {
       initializeScanner();
     }
     return () => {
@@ -52,31 +53,61 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
         scannerRef.current.clear().catch(() => {});
       }
     };
-  }, [status, scannerInitialized, scanResult]); // เพิ่ม dependency เป็น status
+  }, [status, scanResult]);
+
+  // โหลดประวัติการสแกนจาก localStorage เมื่อ component mount
+  useEffect(() => {
+    const storedTokens = localStorage.getItem('scannedTokens');
+    if (storedTokens) {
+      try {
+        const parsedTokens = JSON.parse(storedTokens) as ScannedToken[];
+        // กรองเอาเฉพาะ token ที่ยังไม่หมดอายุ (24 ชั่วโมง)
+        const now = Date.now();
+        const validTokens = parsedTokens.filter(item => (now - item.timestamp) < 24 * 60 * 60 * 1000);
+        scannedTokensRef.current = validTokens;
+      } catch (error) {
+        console.error("Error parsing stored tokens:", error);
+        localStorage.removeItem('scannedTokens');
+      }
+    }
+  }, []);
 
   const initializeScanner = () => {
-    if (scannerRef.current) return; // ป้องกัน initialize ซ้ำ
+    if (scannerRef.current) return;
+    setScanStatus("scanning");
     const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 800 }, false);
     scannerRef.current = scanner;
 
-    scanner.render(handleScan, (error) => {
+    scanner.render(async (decodedText) => {
+      if (isProcessingRef.current) {
+        console.log("Already processing a scan. Ignoring this one.");
+        return;
+      }
+      
+      // ตรวจสอบระยะเวลาระหว่างการสแกน
+      const now = Date.now();
+      if (now - lastScanTimeRef.current < SCAN_COOLDOWN) {
+        console.log(`Scan too soon. Please wait ${((SCAN_COOLDOWN - (now - lastScanTimeRef.current)) / 1000).toFixed(1)} seconds.`);
+        setMessage(`⏱️ กรุณารอสักครู่ก่อนสแกนอีกครั้ง (${((SCAN_COOLDOWN - (now - lastScanTimeRef.current)) / 1000).toFixed(1)} วินาที)`);
+        return;
+      }
+      
+      lastScanTimeRef.current = now;
+      isProcessingRef.current = true;
+      setScanStatus("processing");
+      await handleScan(decodedText);
+      isProcessingRef.current = false;
+    }, (error) => {
       console.warn("Scan error:", error);
     });
   };
 
-
   const calculatePoints = (big: number, small: number) => big * 200 + small * 100;
 
   const handleScan = async (decodedText: string) => {
-    
-    if (!decodedText || decodedText.trim() === "") {
-      console.warn("Empty decodedText, ignoring...");
-      return;
-    }
+    if (!decodedText || decodedText.trim() === "") return;
 
     try {
-      console.log("Raw decodedText:", decodedText);
-
       const queryText = decodedText.includes("?") ? decodedText.split("?")[1] : decodedText;
       const params = queryText.split(";").reduce((acc, pair) => {
         const [key, value] = pair.split(":");
@@ -85,63 +116,83 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
       }, {} as { [key: string]: string });
 
       const token = params.token;
-      if (!token || token.trim() === "") {
+      if (!token) {
         setMessage("❌ ไม่พบ token ใน QR Code");
+        setScanStatus("error");
         return;
       }
 
       if (!decodedText.includes("token:")) {
-        console.warn("Invalid QR format, ignoring...");
+        setMessage("❌ QR Code ไม่ถูกต้อง");
+        setScanStatus("error");
+        return;
+      }
+
+      // ตรวจสอบว่า token นี้เคยถูกสแกนไปแล้วหรือไม่
+      const tokenExists = scannedTokensRef.current.some(item => item.token === token);
+      if (tokenExists) {
+        setMessage("❌ QR Code นี้ถูกใช้งานไปแล้ว ไม่สามารถใช้ซ้ำได้");
+        setScanStatus("error");
+        setTimeout(() => {
+          handleRescan();
+        }, 3000); // รีเซ็ตสแกนอัตโนมัติหลัง 3 วินาที
         return;
       }
 
       const PETbig = parseInt(params.big || "0", 10);
       const PETsmall = parseInt(params.small || "0", 10);
+      const points = calculatePoints(PETbig, PETsmall);
+      const isValid = await validateToken(token, PETbig, PETsmall, points);
 
-      const isValid = await validateToken(token, PETbig, PETsmall, calculatePoints(PETbig, PETsmall));
       if (!isValid) {
         setMessage("❌ Token ไม่ถูกต้องหรือหมดอายุ");
+        setScanStatus("error");
         return;
       }
 
-      const points = calculatePoints(PETbig, PETsmall);
-      // ตรวจสอบสถานะการเข้าสู่ระบบและ userId อีกครั้ง
       const currentUserId = userId || session?.user?.id;
-      console.log("Current userId:", currentUserId, "| points:", points, "| type:", typeof points);
-
-      setBottleDetails({ big: PETbig, small: PETsmall, points });
 
       if (currentUserId && points > 0) {
-        console.log("กำลังส่ง request ไป add-points:", { userId: currentUserId, points });
         setLoading(true);
         try {
           const response = await addPointsToUser(currentUserId, points, PETbig, PETsmall);
           setMessage(`🎉 เพิ่มคะแนนสำเร็จ: ${points} คะแนน - ${response.message}`);
+          
+          // เพิ่ม token ที่สแกนแล้วเข้าไปในประวัติ
+          addToScannedTokens(token);
+          
+          setScanStatus("completed");
         } catch (err: unknown) {
           if (err instanceof Error) {
             setMessage(err.message);
           } else {
             setMessage("เกิดข้อผิดพลาดในการเพิ่มคะแนน");
           }
+          setScanStatus("error");
         } finally {
           setLoading(false);
         }
       } else {
-        // แสดงข้อความแจ้งเตือนเมื่อไม่มี userId
         if (!currentUserId) {
-          console.error("ไม่พบ User ID - กรุณาเข้าสู่ระบบอีกครั้ง");
           setMessage("❌ ไม่พบข้อมูลผู้ใช้ กรุณาเข้าสู่ระบบอีกครั้ง");
+          setScanStatus("error");
         } else {
           setMessage(`✅ ขวดใหญ่ ${PETbig} (${PETbig * 200} คะแนน), ขวดเล็ก ${PETsmall} (${PETsmall * 100} คะแนน), รวม ${points} คะแนน`);
+          
+          // เพิ่ม token ที่สแกนแล้วเข้าไปในประวัติ
+          addToScannedTokens(token);
+          
+          setScanStatus("completed");
         }
       }
 
+      setBottleDetails({ big: PETbig, small: PETsmall, points });
       setScanResult(decodedText);
       scannerRef.current?.clear().catch(() => {});
-
     } catch (error) {
       console.error("Parsing error:", error);
       setMessage("❌ ไม่สามารถอ่านข้อมูล QR ได้");
+      setScanStatus("error");
     }
 
     if (onScanSuccess) {
@@ -149,17 +200,29 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
     }
   };
 
-  
+  // เพิ่ม token ที่สแกนแล้วเข้าไปในประวัติและบันทึกลง localStorage
+  const addToScannedTokens = (token: string) => {
+    const newToken: ScannedToken = { token, timestamp: Date.now() };
+    
+    // เพิ่ม token ใหม่และตัด token เก่าออกหากเกินจำนวนที่กำหนด
+    const updatedTokens = [newToken, ...scannedTokensRef.current];
+    if (updatedTokens.length > MAX_STORED_TOKENS) {
+      updatedTokens.splice(MAX_STORED_TOKENS);
+    }
+    
+    scannedTokensRef.current = updatedTokens;
+    
+    // บันทึกลง localStorage
+    try {
+      localStorage.setItem('scannedTokens', JSON.stringify(updatedTokens));
+    } catch (error) {
+      console.error("Error storing scanned tokens:", error);
+    }
+  };
 
   const validateToken = async (token: string, PETbig: number, PETsmall: number, points: number): Promise<boolean> => {
     try {
-      const res = await axios.post("/api/routers/validate-token", 
-        { 
-          token, 
-          PETbig, 
-          PETsmall, 
-          points
-        });
+      const res = await axios.post("/api/routers/validate-token", { token, PETbig, PETsmall, points });
       return res.data.valid;
     } catch {
       return false;
@@ -167,22 +230,53 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
   };
 
   const addPointsToUser = async (userId: string, points: number, PETbig: number, PETsmall: number): Promise<AddPointsResponse> => {
-    const res = await axios.post("/api/routers/add-points", { userId: userId, points: Number(points), PETbig, PETsmall });
+    const res = await axios.post("/api/routers/add-points", { userId, points, PETbig, PETsmall });
     return res.data;
   };
-  
 
   const handleRescan = () => {
     setScanResult(null);
     setMessage("");
     setBottleDetails({ big: 0, small: 0, points: 0 });
-    scannerRef.current = null; // reset scannerRef
-    initializeScanner(); // สั่ง initialize ใหม่
+    setScanStatus("idle");
+    scannerRef.current = null;
+    isProcessingRef.current = false;
+    initializeScanner();
+  };
+
+  // สร้าง UI indicator สำหรับสถานะการสแกน
+  const renderScanStatusIndicator = () => {
+    if (scanStatus === "idle" || scanStatus === "scanning") return null;
+    
+    let statusClass = "";
+    let statusText = "";
+    
+    switch (scanStatus) {
+      case "processing":
+        statusClass = "status-processing";
+        statusText = "กำลังประมวลผล...";
+        break;
+      case "completed":
+        statusClass = "status-success";
+        statusText = "สแกนสำเร็จ";
+        break;
+      case "error":
+        statusClass = "status-error";
+        statusText = "เกิดข้อผิดพลาด";
+        break;
+    }
+    
+    return (
+      <div className={`scan-status-indicator ${statusClass}`}>
+        <span>{statusText}</span>
+      </div>
+    );
   };
 
   return (
     <div className="qr-scanner-container">
       {!scanResult && <div id="reader"></div>}
+      {renderScanStatusIndicator()}
 
       {loading && (
         <div className="loading-overlay">
@@ -191,11 +285,7 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
         </div>
       )}
 
-      {message && (
-        <div className="scan-message">
-          {message}
-        </div>
-      )}
+      {message && <div className="scan-message">{message}</div>}
 
       {scanResult && (
         <div className="scan-result">
@@ -216,131 +306,48 @@ export default function QRCodeScannerWithPoints({ onScanSuccess }: { onScanSucce
               <span className="bottle-value">{bottleDetails.points} คะแนน</span>
             </div>
           </div>
-
           <div className="qr-value">
             <details>
               <summary>แสดงข้อมูล QR Code</summary>
               <p className="qr-text">{scanResult}</p>
             </details>
           </div>
-
-          <button className="rescan-button" onClick={handleRescan}>
+          <button 
+            className="rescan-button" 
+            onClick={handleRescan}
+            disabled={isProcessingRef.current || (Date.now() - lastScanTimeRef.current < SCAN_COOLDOWN)}
+          >
             สแกนใหม่
           </button>
         </div>
       )}
+
+      {/* เพิ่ม CSS สำหรับ UI indicator */}
       <style jsx>{`
-        .qr-scanner-container {
-          color: #000;
-          max-width: 500px;
-          margin: 0 auto;
-          padding: 16px;
-          font-family: sans-serif;
-        }
-        #reader {
-          width: 100%;
-          min-height: 300px;
-          border: 1px solid #ddd;
-          border-radius: 8px;
-          overflow: hidden;
-        }
-        .loading-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.7);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          z-index: 1000;
-        }
-        .loading-spinner {
-          border: 4px solid rgba(255, 255, 255, 0.3);
-          border-radius: 50%;
-          border-top: 4px solid white;
-          width: 40px;
-          height: 40px;
-          animation: spin 1s linear infinite;
-          margin-bottom: 16px;
-        }
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-        .scan-message {
-          color: #000;
-          margin: 16px 0;
-          padding: 12px;
-          background-color: #f0f9ff;
-          border-left: 4px solid #0ea5e9;
+        .scan-status-indicator {
+          padding: 8px 16px;
           border-radius: 4px;
-        }
-        .scan-result {
-          color: #000;
-          margin: 16px 0;
-          padding: 16px;
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-          border-radius: 8px;
-        }
-        .bottle-details {
-          margin: 16px 0;
-        }
-        .bottle-item {
-          display: flex;
-          margin-bottom: 8px;
-        }
-        .bottle-label {
-          flex: 1;
-          font-weight: 500;
-        }
-        .bottle-value {
-          flex: 1;
-          text-align: right;
-        }
-        .bottle-points {
-          flex: 1;
-          text-align: right;
-          color: #10b981;
-        }
-        .bottle-total {
-          display: flex;
-          margin-top: 16px;
-          padding-top: 8px;
-          border-top: 1px dashed #cbd5e1;
+          margin: 8px 0;
           font-weight: bold;
+          text-align: center;
         }
-        .qr-value {
-          margin: 16px 0;
-          font-size: 14px;
+        .status-processing {
+          background-color: #f0f0f0;
+          color: #666;
         }
-        .qr-text {
-          word-break: break-all;
-          background: #f1f5f9;
-          padding: 8px;
-          border-radius: 4px;
+        .status-success {
+          background-color: #e6f7e6;
+          color: #2e7d32;
         }
-        .rescan-button {
-          background: #3b82f6;
-          color: white;
-          border: none;
-          padding: 10px 16px;
-          border-radius: 4px;
-          cursor: pointer;
-          font-weight: 500;
-          margin-top: 16px;
-          width: 100%;
+        .status-error {
+          background-color: #ffebee;
+          color: #c62828;
         }
-        .rescan-button:hover {
-          background: #2563eb;
+        .rescan-button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
       `}</style>
-
-      {/* เอา style เดิมที่คุณมีมาแปะตรงนี้ได้เลย */}
     </div>
   );
 }
