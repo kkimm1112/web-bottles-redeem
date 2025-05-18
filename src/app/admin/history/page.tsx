@@ -229,48 +229,8 @@ export default function AdminHistoryPage() {
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
-      {/* Notification Message */}
-      {successMessage && (
-        <div className="fixed top-4 right-4 bg-green-100 border border-green-200 text-green-700 px-4 py-3 rounded-lg shadow-md z-50">
-          {successMessage}
-        </div>
-      )}
-      {errorMessage && (
-        <div className="fixed top-4 right-4 bg-red-100 border border-red-200 text-red-700 px-4 py-3 rounded-lg shadow-md z-50">
-          {errorMessage}
-        </div>
-      )}
-
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-green-600">ประวัติการแลกของรางวัล</h1>
-        
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="ค้นหา..."
-            className="w-full md:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <svg
-            className="absolute left-3 top-2.5 h-5 w-5 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            ></path>
-          </svg>
-        </div>
-      </div>
-      {/* Sidebar */}
-      <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white shadow-lg fixed h-full transition-all duration-300 z-10`}>
+            {/* Sidebar */}
+            <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white shadow-lg fixed h-full transition-all duration-300 z-10`}>
         <div className="flex justify-between items-center p-4 border-b">
           {sidebarOpen ? (
             <h2 className="text-xl font-bold text-green-600">Admin Panel</h2>
@@ -352,6 +312,47 @@ export default function AdminHistoryPage() {
           </div>
         </nav>
       </div>
+      {/* Notification Message */}
+      {successMessage && (
+        <div className="fixed top-4 right-4 bg-green-100 border border-green-200 text-green-700 px-4 py-3 rounded-lg shadow-md z-50">
+          {successMessage}
+        </div>
+      )}
+      {errorMessage && (
+        <div className="fixed top-4 right-4 bg-red-100 border border-red-200 text-red-700 px-4 py-3 rounded-lg shadow-md z-50">
+          {errorMessage}
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <h1 className="text-2xl font-bold text-green-600">ประวัติการแลกของรางวัล</h1>
+        
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="ค้นหา..."
+            className="w-full md:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <svg
+            className="absolute left-3 top-2.5 h-5 w-5 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            ></path>
+          </svg>
+        </div>
+      </div>
+
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
