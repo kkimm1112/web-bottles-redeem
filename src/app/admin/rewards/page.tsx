@@ -378,8 +378,6 @@ export default function AdminRewardTable() {
             </div>
           </Link>
           
-      
-          
           {/* Rewards */}
           <Link href="/admin/rewards">
             <div className="flex items-center px-4 py-3 mt-2 text-gray-600 hover:bg-gray-100 hover:border-l-4 hover:border-green-500 transition-all duration-200">
@@ -422,6 +420,7 @@ export default function AdminRewardTable() {
           </div>
         </nav>
       </div>
+      
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-green-600">จัดการรางวัล</h1>

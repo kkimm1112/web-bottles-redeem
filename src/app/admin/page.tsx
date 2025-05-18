@@ -93,7 +93,6 @@ export default function AdminPage() {
           </div>
         </nav>
       </div>
-
       {/* Main Content */}
       <div className={`flex-1 ${sidebarOpen ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
         {/* Top Navigation */}
